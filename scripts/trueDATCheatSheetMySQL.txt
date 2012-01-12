@@ -1,0 +1,87 @@
+Choose a cheat sheet query...
+
+====
+SELECT
+SELECT *
+  FROM tableName
+ WHERE conditional
+   AND otherConditional
+ ORDER BY ID ASC
+====
+SELECT with INNER JOIN
+SELECT *
+  FROM tableName A
+ INNER JOIN otherTableName B
+    ON B.tableAID=A.ID
+ WHERE conditional
+   AND otherConditional
+ ORDER BY ID ASC
+====
+UPDATE
+UPDATE tableName
+   SET column1 = value1,
+       column2 = value2
+ WHERE conditional
+   AND otherConditional
+====
+INSERT
+INSERT INTO tableName
+      (column1, column2, column3)
+VALUES( value1,  value2,  value3)
+====
+DELETE
+DELETE FROM tableName
+ WHERE conditional
+   AND otherConditional
+====
+ADD column
+ALTER TABLE tableName ADD (
+	  booleanData BIT,
+      textData VARCHAR(maxLength),
+      largeTextData TEXT,
+      dateData DATETIME '2011-03-26 14:20',
+      moneyData MONEY NOT NULL DEFAULT 0',
+      integerData INT,
+      decimalData DECIMAL(numDecimalPlaces, totalDigitPrecision)
+====
+RENAME column
+ALTER TABLE tableName CHANGE columnName newColumnName columnDefinitionLikeVARCHAR(maxLength);
+====
+DROP column(s)
+ALTER TABLE tableName DROP COLUMN columnName, DROP COLUMN columnName2
+====
+CREATE table
+CREATE TABLE newTableName(
+	ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+	booleanData BIT DEFAULT 1
+	ForeignID INT,
+	floatData FLOAT,
+	textData VARCHAR(maxLength),
+	dateExpires DATETIME,
+	decimalData DECIMAL(numDecimalPlaces, totalDigitPrecision),
+	FOREIGN KEY (ForeignID) REFERENCES foreignTableName(ID) ON UPDATE CASCADE ON DELETE CASCADE
+);
+====
+RENAME table
+RENAME table tableName to newTableName;
+====
+DROP table
+DROP TABLE doomedTableName
+====
+ADD DEFAULT VALUE to column
+ALTER TABLE tableName MODIFY columnName columnDefinition DEFAULT defaultValue;
+====
+ADD FOREIGN KEY
+ALTER TABLE tableName ADD FOREIGN KEY foreignKeyName (ForeignID) REFERENCES foreignTableName(ID);
+====
+DROP FOREIGN KEY
+ALTER TABLE tableName DROP FOREIGN KEY foreignKeyName;
+====
+CREATE VIEW
+CREATE OR REPLACE VIEW viewName AS
+	SELECT *
+ 	  FROM tableName
+ 	 WHERE conditional;
+====
+CREATE INDEX
+CREATE INDEX indexName ON tableName(columnName1, columnName2);

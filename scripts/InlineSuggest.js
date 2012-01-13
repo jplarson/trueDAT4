@@ -29,13 +29,25 @@ var InlineSuggest = new Class({
 		this.input = $(input);
 		this.suggestSet = suggestSet  ||  [];
 		
-		var self = this;
-		this.input.addEvents({
-			keypress:	self.acceptSuggestion.bind(self),
-			keyup:		self.makeSuggestion.bind(self)
-		})
-		
+		this.bound = {
+			acceptSuggestion: this.acceptSuggestion.bind(this),
+			makeSuggestion: this.makeSuggestion.bind(this),
+		};
+		this.attach();
+	},
+	
+	attach: function(attach){
+		var method = (attach != false) ? 'addEvents' : 'removeEvents';
+		this.input[method]({
+			keypress: this.bound.acceptSuggestion,
+			keyup: this.bound.makeSuggestion
+		});
 		this.suggestionIsPending = false;
+		return this;
+	},
+	
+	detach: function(){
+		return this.attach(false);
 	},
 	
 	acceptSuggestion: function(event) {
@@ -44,8 +56,18 @@ var InlineSuggest = new Class({
 			this.suggestionIsPending = false;
 			return;
 		}
-		if([9, 13].contains(event.code)) { // tab or enter
+		if([9, 13].contains(event.code)) { // tab or enter: here the user actually accepts
 			var selectEnd = this.input.getSelectionEnd();
+			
+			// Replace the newly accepted+suggested symbol with it's exact capitalization:
+			var acceptedSymbol = this.input.value.substr(0, selectEnd).match(/\b\w*$/)[0];
+			for(var i=0; i < this.suggestSet.length; i++) {
+				var symbol = this.suggestSet[i];
+				if(symbol.toLowerCase() == acceptedSymbol.toLowerCase()) {
+					this.input.value = this.input.value.substr(0, selectEnd-acceptedSymbol.length) + symbol + this.input.value.substr(selectEnd);
+					break;
+				}
+			}
 			this.input.selectRange(selectEnd, selectEnd);
 			this.suggestionIsPending = false;
 			event.preventDefault();
@@ -88,6 +110,6 @@ var InlineSuggest = new Class({
 	},
 	
 	setSuggestions: function(suggestSet) {
-		this.suggestSet = suggestSet;
+		this.suggestSet = suggestSet.sort();
 	}
 });

@@ -552,7 +552,7 @@ var TrueDATTabManager = new Class({
 			setSelectOptions('tableTransferExportSelect', App.DBStructureData.tableSet);
 			$('tableTransferExportSelect').size = App.DBStructureData.tableSet.length;
 			
-			App.SQLForm.SQL.suggest.setSuggestions(App.DBStructureData.tableSet);
+			App.SQLForm.SQL.suggest.setSuggestions(App.DBStructureData.suggestionSet);
 			App.databaseType = App.DBStructureData.databaseType;
 			App.statementDelimiter = App.DBStructureData.statementDelimiter;
 			
@@ -903,8 +903,8 @@ var TrueDATTabManager = new Class({
 		var tableName = extractSQLTableName(SQL);
 		var IDName = App.DBStructureData.tablePrimaryKeySet[tableName];
 		if(IDName) { // it's a known table, so far so good:
-			// Pragmatic convention: the table ID MUST be the first column:
-			if(theTable.getFirst().getFirst().getFirst().get('text') == IDName) { // if so, Add/Edit is ok!
+			// Pragmatic convention: the table ID MUST be the first column AND we expect it to be an integer:
+			if(theTable.getFirst().getFirst().getFirst().get('text') == IDName  &&  columnDataTypeSet[0] == 'int') { // if so, Add/Edit is ok!
 				theDiv.getElements('.edit').setStyle('display', 'inline-block');
 				
 				// theDiv will store helpful data by which we'll enable editing:

@@ -613,7 +613,7 @@ function ConfigFileExists() {
 }
 
 function BuildTDConfigFromFirstConfigRequest() {
-	// Build our options data structure from the request parameters:
+	// Build our options data structure from the request parameters + suitable defaults:
 	if(Request("autodetect") != '') {
 		$connection = GetAutoDetectDBSettings(Request('autodetect'));
 		$connection['type'] = Request('db_type');
@@ -627,7 +627,7 @@ function BuildTDConfigFromFirstConfigRequest() {
 		);
 	}
 	$TDConfig = array(
-		'connections' => array( // a hint of multiple connections configurable in the future
+		'connections' => array( // multiple connections configurable, but just one for now
 			$connection
 		),
 		'authentication' => array(
@@ -640,8 +640,9 @@ function BuildTDConfigFromFirstConfigRequest() {
 		'options' => array(
 			'currentConnection' => 0,
 			'baseURL' => EnsureEndsWith(Request('baseURL'), '/'),
+			'suggestItems' => "tables&SPs&columns",
 			'statementDelimiter' => "\nGO\n",
-			'timeElapsedInterestThreshold' => 1,
+			'timeElapsedDisplayThreshold' => 1,
 			'enableForeignKeySurfing' => false,
 		),
 	);
@@ -652,60 +653,32 @@ function ProperPHPLiteral($valueString) {
 	if(in_array(strtolower($valueString), array('true', 'false'))) return $valueString; // is a boolean, no problem
 	return "\"". str_replace(array("\\", '"'), array("\\\\", '\"'), $valueString) . "\"";
 }
-function printArrayAsPhpCode($array, $depth = 0) {
-	if (count($array) == 0) {
-		if (!$return) {
-			print "array()";
-			return true;
-		} else {
-			return "array()";
-		}
-	}
-	$string = "array(";
-	if (array_values($array) === $array) {
-		$no_keys = true;
-		foreach ($array as $value) {
-			if (is_int($value)  ||  is_float($value)  ||  is_numeric($value)  ||  is_double($value)) {
-				$string .= "$value, ";
-			} elseif (is_null($value)) {
-				$string .= "null, ";
-			} elseif (is_array($value)) {
-				$string .= printArrayAsPhpCode($value, $depth+1) . ",\n";
-			} elseif (is_string($value)) {
-				$string .= "\"". str_replace(array("\\", '"'), array("\\\\", '\"'), $value) . "\", ";
-			} elseif (is_bool($value)) {
-				$string .= ($value ? 'true' : 'false') . ", ";
-			} else {
-				trigger_error("Unsupported type of \$value, in index $key.");
-			}
-		}
-	} else {
-		$string .="\n";
-		foreach ($array as $key => $value) {
-			$no_keys = false;
-			if (is_int($value)  ||  is_float($value)  ||  is_numeric($value)  ||  is_double($value)) {
-				$string .= str_repeat("\t", $depth) . "\"$key\" => $value,\n";
-			} elseif (is_null($value)) {
-				$string .= str_repeat("\t", $depth) . "\"$key\" => null,\n";
-			} elseif (is_array($value)) {
-				$string .= str_repeat("\t", $depth) . "\"$key\" => " . printArrayAsPhpCode($value, $depth+1) . ",\n";
-			} elseif (is_string($value)) {
-				$string .= str_repeat("\t", $depth) . "\"$key\" => \"". str_replace(array("\\", '"'), array("\\\\", '\"'), $value) . "\",\n";
-			} elseif (is_bool($value)) {
-				$string .= str_repeat("\t", $depth) . "\"$key\" => " . ($value ? 'true' : 'false') . ",\n";
-			} else {
-				trigger_error("Unsupported type of \$value, in index $key. gettype() =" . gettype($value));
-			}
-		}
-	}
-	$string = substr($string, 0, strlen($string) - 2); # Remove last comma.
-	if (!$no_keys) {
-		$string .= "\n";
-	}
-	$string .= ")";
-	return $string;
-}
 
+function printArrayAsPhpCode($array, $depth = 1) {
+	if(count($array) == 0) return "array()"; // empty, super simple!
+	
+	$hasKeys = !(array_values($array) === $array);
+	$result = "array(" . ($hasKeys ? "\n" : '');
+	foreach ($array as $key => $value) {
+		if(is_int($value)  ||  is_float($value)) {
+			$phpValue = $value;
+		} elseif(is_null($value)) {
+			$phpValue = 'null';
+		} elseif(is_array($value)) {
+			$phpValue = printArrayAsPhpCode($value, $depth+1);
+		} elseif(is_string($value)) {
+			$phpValue = "\"" . str_replace(array("\\", '"', "\n"), array("\\\\", '\"', '\n'), $value) . "\"";
+		} elseif(is_bool($value)) {
+			$phpValue = ($value ? 'true' : 'false');
+		} else {
+			trigger_error("Unsupported type of \$value, in index $key. gettype() =" . gettype($value));
+		}
+		$result .= $hasKeys ? str_repeat("\t", $depth) . "\"$key\" => $phpValue,\n" : "$phpValue, ";
+	}
+	$result = substr($result, 0, strlen($result) - 2); // Remove last comma.
+	$result .= ($hasKeys ? "\n" . str_repeat("\t", $depth-1) : '') . ")"; // close out the array
+	return $result;
+}
 
 
 function DisplayApp() {
@@ -1159,7 +1132,7 @@ function PerformSQLExecution() {
 		}
 ?>
 </table>
-<? if($timeElapsed > $TDConfig['options']['timeElapsedInterestThreshold']) { ?><?=$timeElapsed?> seconds elapsed.<? } ?>
+<? if($timeElapsed > $TDConfig['options']['timeElapsedDisplayThreshold']) { ?><?=$timeElapsed?> seconds elapsed.<? } ?>
 <br/>
 <input type="submit" class="button add" style="display: none;" value="Add Record" onclick="JavaScript: addNewRow(this);  return false;">
 </div><div class="clear"></div>
@@ -1602,7 +1575,7 @@ function DrawValueFinderInterface() {
     <tr>
       <td width="90">Find a string:</td>
       <td>
-      	<input type="text" name="string" style="width: 250px;" />
+      	<input type="text" name="string" style="width: 278px;" />
       	&nbsp;
       	<input type="checkbox" name="like" id="valueLikeCheckbox" checked />
       	<label for="valueLikeCheckbox">LIKE '%__%'</label>
@@ -1802,12 +1775,34 @@ function LoadDBStructure() {
 			$foreignKeySet[$fkR['FKColumn']] = array($fkR['parentTable'], $fkR['parentRow']);
 		}
 	}
+	
+	// Now gather all of the items to suggest basd on the option:
+	$suggestionSet = array();
+	$suggestItemSet = explode('&', $TDConfig['options']['suggestItems']);
+	if(in_array('tables', $suggestItemSet))		// include tables
+		$suggestionSet = $tableSet;
+	if(in_array('columns', $suggestItemSet)) {	// include columns
+		foreach($tableSet as $tableName) {
+			$cRS = ExecuteSQLTD("SHOW COLUMNS FROM $tableName");
+			while($cR = rs_fetch_array($cRS)) {
+				$suggestionSet[] = $cR[0];
+			}
+		}
+	}
+	if(in_array('SPs', $suggestItemSet)) {		// include stored procedures
+		foreach($SPSet as $SPName) {
+			$suggestionSet[] = $SPName;
+		}
+	}
+	$suggestionSet = array_values(array_unique($suggestionSet)); // remove duplicates and keep it a straight numeric indexed array
+		
 	$DBData = array(
 		'databaseType' => GetCurrentDBType(),
 		'statementDelimiter' => $TDConfig['options']['statementDelimiter'],
 		'tableSet' => $tableSet,
 		'tableLabelSet' => $tableLabelSet,
 		'tablePrimaryKeySet' => $primaryKeySet,
+		'suggestionSet' => $suggestionSet,
 		'foreignKeySet' => $foreignKeySet,
 		'SPSet' => $SPSet);
 	echo json_encode($DBData);

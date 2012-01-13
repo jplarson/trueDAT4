@@ -142,6 +142,11 @@ function DisplayTrueDAT4() {
 	$isLoggedIn = IsLoggedIn();
 ?>
 <!DOCTYPE HTML>
+<!--[if lt IE 7 ]> <html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]>    <html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]>    <html class="ie ie8" lang="en"> <![endif]-->
+<!--[if IE 9 ]>    <html class="ie ie9" lang="en"> <![endif]-->
+<!--[if gt IE 9]><!--><html lang="en"><!--<![endif]-->
 <html>
 <head>
   <link rel="SHORTCUT ICON" HREF="<?=$trueDATBaseURL?>images/favicon.gif?x=1">
@@ -777,7 +782,6 @@ window.addEvent('domready', function() {
       <input type="submit" class="button" value="Execute" tabindex="4" onclick="JavaScript: executeSQL();  return false;">
       <input type="submit" class="button" value="Export"  tabindex="5" onclick="JavaScript: exportToCSV(); return false;">
     </div>
-  </form><!--#SQLForm-->
     <div class="verticalMiddle">
       <? DrawButton("Beautify", "beautifyTheSQL();"); ?>
       <? DrawButton("Favorites", "this.toggleClass('pushed'); $('favoritesDiv').toggleClass('hidden')"); ?>
@@ -788,6 +792,7 @@ window.addEvent('domready', function() {
       	<option>Value Finder</option>
       </select>
     </div>
+  </form><!--#SQLForm-->
     <div class="clear"></div>
     <div class="nextElement"></div>
     <div id="favoritesDiv" class="hidden" >

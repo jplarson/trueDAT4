@@ -276,7 +276,7 @@ var HistoryManager = {
 			this.observeTimeout();
 			this.form.setProperty('action', state.length ? '#' + state  :  '#_').submit();
 		} else location.hash = state || '#_';  // was : '#' jpl prevent '#' when state is empty
-		if (Browser.Engine.trident && (!fix || this.istateOld)) {
+		if (Browser.Engine.trident  &&  Browser.Engine.version < 6  && (!fix || this.istateOld)) { // jpl hack: added Browser.Engine.version < 6 for < IE8
 			if (!this.iframe) {
 				this.iframe = new Element('iframe', {
 					src: this.options.iframeSrc,

@@ -33,12 +33,16 @@ window.addEvent('domready', function() {
 		App.databaseType = 'MySQL'; // unless overridden by loadDBStructure()
 	//	App.SQLResizer = new TextareaSizer(App.SQLForm.SQL);
 		HistoryManager.start();
+		HistoryManager.setOptions({ iframeSrc: App.thisPage + '?a=blank' });
 		
 		loadPersistentState();
 		window.addEvent('unload', savePersistentState);
 		
 		loadDBStructure(true);
-			
+		
+		App.SQLForm.table.addEvent('change', function() { App.persistentState.currentTable = this.value; });
+		
+		
 		recallRecentQueries();
 		
 		loadFavoriteQueries();
@@ -409,7 +413,7 @@ var TrueDATTabManager = new Class({
 */
 	function executeSQL() {
 		var resultDiv = App.tabManager.getCurrentResultDiv();
-		resultDiv.setStyle('opacity', 0);
+		$(resultDiv).setStyle('opacity', 0);
 		showLoad();
 		App.editPopUp.close();
 		App.columnPopUp.close();
@@ -486,7 +490,7 @@ var TrueDATTabManager = new Class({
 		var topClause = '', limitClause = '';
 		switch(App.databaseType) {
 			case 'MSSQL': topClause = 'TOP ' + theCount + ' ';		break;
-			case 'MySQL': limitClause = '\nLIMIT ' + theCount;		break;
+			case 'MySQL': limitClause = '\n LIMIT ' + theCount;		break;
 		}
 		
 		quickLoadSQL(
@@ -513,9 +517,14 @@ var TrueDATTabManager = new Class({
 		}).send();
 	}
 	
-	function quickLoadSQL(SQL) { $('SQLTextArea').value == SQL ? executeSQL() : $('SQLTextArea').value = SQL; }
+	function quickLoadSQL(SQL) { nearlyEqual($('SQLTextArea').value, SQL) ? executeSQL() : $('SQLTextArea').value = SQL; }
 	function loadSelectQuery(theSelect) { $('SQLTextArea').value = $(theSelect).value; }
 	
+	function nearlyEqual(s1, s2) { // accounts for differences in linebreak structure, "\r\n" vs. just "\n"
+		s1 = s1.replace(/\r\n/g, '\n');
+		s2 = s2.replace(/\r\n/g, '\n');
+		return s1 == s2;
+	}
 	
 	function loadDBStructure(recallState) {
 		if(recallState  &&  App.persistentState.DBStructureData) {
@@ -537,6 +546,8 @@ var TrueDATTabManager = new Class({
 		function integrateDBStructure() {
 			setSelectOptions(App.SQLForm.table, ['', App.DBStructureData.tableSet].flatten(), [' - Select a table - ', App.DBStructureData.tableLabelSet].flatten());
 			setSelectOptions(App.SQLForm.storedProcedure, [' - Select a stored procedure - ', App.DBStructureData.SPSet].flatten());
+			
+			App.SQLForm.table.value = App.persistentState.currentTable;
 			
 			setSelectOptions('tableTransferExportSelect', App.DBStructureData.tableSet);
 			$('tableTransferExportSelect').size = App.DBStructureData.tableSet.length;
@@ -1153,7 +1164,7 @@ var TrueDATTabManager = new Class({
 		result = result.replace(/\s*([<>])?=\s*/g, ' $1= '); // tidy up spacing around equals signs
 		
     	// Capitalize these keywords, and tighten up the spacing around them (" {keyword} "):
-    	("SELECT TOP AS FROM INNER OUTER LEFT RIGHT JOIN ON WHERE AND OR IN IS NOT NULL UPDATE INSERT DELETE " +
+    	("SELECT TOP AS FROM INNER OUTER LEFT RIGHT JOIN ON WHERE AND OR IN IS NOT NULL UPDATE INSERT DELETE LIMIT " +
     	 "WHEN CASE IF THEN ELSE END BY ASC DESC").split(' ').each(function(theKeyword) {
     		result = result.replace(new RegExp("\\s*\\b" + theKeyword + "\\b\\s*", 'gi'), ' ' + theKeyword + " ");
     	});
@@ -1164,7 +1175,7 @@ var TrueDATTabManager = new Class({
     	});
     	
     	// Give these keywords new lines and indentation for right-aligned 6-wide formating:
-    	"SELECT FROM INNER OUTER LEFT RIGHT ON SET WHERE AND OR IF THEN GROUP ORDER HAVING".split(' ').each(function(theKeyword) {
+    	"SELECT FROM INNER OUTER LEFT RIGHT ON SET WHERE AND OR IF THEN GROUP ORDER HAVING LIMIT".split(' ').each(function(theKeyword) {
     		var leftPadding = (theKeyword.length < 6 ? Array(7-theKeyword.length).join(" ") : '');
     		result = result.replace(new RegExp("\\b" + theKeyword + "\\s+", 'gi'), "\n" + leftPadding + theKeyword + " ");
     	});
@@ -1194,10 +1205,12 @@ var TrueDATTabManager = new Class({
 		theSelect.options.length = 0;
 		if(!labelSet) { labelSet = valueSet; }
 		
-		for(var i=0; i < valueSet.length; i++)
+		var targetIndex = 0;
+		for(var i=0; i < valueSet.length; i++) {
 			theSelect.options.add(new Option(labelSet[i], valueSet[i]));
-		
-		theSelect.value = oldValue;
+			if(oldValue == valueSet[i]) targetIndex = i;
+		}
+		theSelect.selectedIndex = targetIndex;
 	}
 	function getSelectSelectedValueSet(theSelect) {
 		var result = [];

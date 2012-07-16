@@ -125,8 +125,8 @@ table.editable td:hover {
 }
 table.editable td:hover:first-child { background-color:	#F0CEC8 !important; }
 
-table.data th.sortAsc  { background: #CCE3AC url(../images/sortAsc.png)  100% 0 repeat-x; padding-right: 13px; }
-table.data th.sortDesc { background: #CCE3AC url(../images/sortDesc.png) 100% 0 repeat-x; padding-right: 13px; }
+table.data th.sortAsc  { background: #CCE3AC url(../images/sortAsc.png)  100% 0 repeat-x; }
+table.data th.sortDesc { background: #CCE3AC url(../images/sortDesc.png) 100% 0 repeat-x; }
 
 table.data tr.addRow input[type='text'] { width: 95%; }
 /* End SECTION::Data Tables

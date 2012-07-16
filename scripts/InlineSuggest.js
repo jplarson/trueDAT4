@@ -21,13 +21,16 @@ var InlineSuggest = new Class({
 	
 	Implements: [Options, Events],
 	options: {
-		minLengthMatch:			3
+		minLengthMatch:			3,
+		exemptSet: 				[],
+		suppressIfInWord:		true, 
 	},
 	
 	initialize: function(input, suggestSet, options) {
 		this.setOptions(options);
 		this.input = $(input);
 		this.suggestSet = suggestSet  ||  [];
+		this.setExemptions(this.options.exemptSet  ||  []);
 		
 		this.bound = {
 			acceptSuggestion: this.acceptSuggestion.bind(this),
@@ -90,17 +93,20 @@ var InlineSuggest = new Class({
 	},
 	makeSuggestionFrom: function(startIndex, direction) {
 		
-		var lastSymbolMatch = this.input.value.substr(0, this.input.getCaretPosition()).match(/\b\w*$/);
+		var caretPosition = this.input.getCaretPosition();
+		var lastSymbolMatch = this.input.value.substr(0, caretPosition).match(/\b\w*$/);
 		if(!lastSymbolMatch) return;
 		
-		var currentSymbol = lastSymbolMatch[0];
+		if(this.options.suppressIfInWord  &&  this.input.value.substr(caretPosition, 1).match(/\w/)) return;
+		
+		var currentSymbol = lastSymbolMatch[0].toLowerCase();
 		var symbolLength = currentSymbol.length;
-		if(symbolLength < this.options.minLengthMatch)
+		if(symbolLength < this.options.minLengthMatch  ||  this.isExempt(currentSymbol))
 			return;
 		
 		for(var i=startIndex; i < this.suggestSet.length  &&  i >= 0; i += direction) {
 			var item = this.suggestSet[i];
-			if(item.substr(0, symbolLength).toLowerCase() == currentSymbol.toLowerCase()) {
+			if(item.substr(0, symbolLength).toLowerCase() == currentSymbol) {
 				this.input.insertAtCursor(item.substr(symbolLength), true);
 				this.suggestionIsPending = true;
 				this.pendingSuggestionIndex = i;
@@ -109,7 +115,20 @@ var InlineSuggest = new Class({
 		}
 	},
 	
+	isExempt: function(symbol) {
+		var symbolLength = symbol.length;
+		for(var i=0; i < this.exemptSet.length; i++) {
+			if(this.exemptSet[i].substr(0, symbolLength).toLowerCase() == symbol) {
+				return true;
+			}
+		}
+		return false;
+	},
+	
 	setSuggestions: function(suggestSet) {
 		this.suggestSet = suggestSet.sort();
+	},
+	setExemptions: function(exemptSet) {
+		this.exemptSet = exemptSet.sort();
 	}
 });

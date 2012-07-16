@@ -8,16 +8,17 @@
 	
 ===============================================================================*/
 
-define('TRUEDAT4_VERSION', "4.00");
+define('TRUEDAT4_VERSION', "4.0.2");
 define('thisPage', $_SERVER['PHP_SELF']);
-define('TRUEDAT4_BASEURL', 'http://www.truedat.us/baseResources/4_00/');
+define('TRUEDAT4_BASEURL', 'http://www.truedat.us/baseResources/4_0_2/');
 	
 	$TDConfig = array();
-	if(file_exists('trueDAT4Config.php')) {
+	$trueDATBaseURL = TRUEDAT4_BASEURL;
+	if(ConfigFileExists()) {
 		require_once('trueDAT4Config.php');
+		$trueDATBaseURL = $TDConfig['options']['baseURL'];
 		global $TDConfig; // load our configuration as global variable
 	}
-	$trueDATBaseURL = $TDConfig['options']['baseURL'];
 	$accessKey = 'trueDAT4Access::' . currentPageURL();
 	
 	session_start();
@@ -137,7 +138,7 @@ function DisplayTrueDAT4() {
 	
 	global $trueDATBaseURL;
 	$configExists = ConfigFileExists();
-	if(!$configExists) { $trueDATBaseURL = TRUEDAT4_BASEURL; } // starter default!
+//	if(!$configExists) { $trueDATBaseURL = TRUEDAT4_BASEURL; } // starter default!
 		
 	$isLoggedIn = IsLoggedIn();
 ?>
@@ -942,16 +943,19 @@ function rs_get_field_names($xRS) {
 			break;
 		case "MSSQL":
 			$fieldSet = sqlsrv_field_metadata($xRS);
-			foreach($fieldSet  as $field)
-				$resultSet[] = $field['name'];
+			foreach($fieldSet  as $field) {
+			//	var_dump($field);
+				$resultSet[] = $field['Name'];
+			}
 			break;
 	}
+//	var_dump($resultSet);
 	return $resultSet;
 }
 function rs_fetch_array($xRS) {
 	switch(GetCurrentDBType()) {
 		case "MySQL": return mysql_fetch_array($xRS);  break;
-		case "MSSQL": return sqlsrv_fetch_array($xRS); break;
+		case "MSSQL": return sqlsrv_fetch_array($xRS, SQLSRV_FETCH_BOTH); break;
 	}
 }
 function rs_fetch_fields($xRS) {
@@ -968,6 +972,20 @@ function rs_fetch_fields($xRS) {
 			break;
 	}
 	return $result;
+}
+function GetTableColumnRS($tableName, $extraWhere = '1=1') {
+	switch(GetCurrentDBType()) {
+		case "MySQL": return ExecuteSQLTD("SHOW COLUMNS FROM $tableName"); break;
+		case "MSSQL": return ExecuteSQLTD(
+			"SELECT syscolumns.name AS column_name
+			   FROM sysobjects
+			  INNER JOIN syscolumns ON sysobjects.id = syscolumns.id 
+			  WHERE sysobjects.xtype = 'U'
+				AND $extraWhere
+				AND sysobjects.name=" . SQLValue($tableName) . "
+			  ORDER BY syscolumns.colid");
+			break;
+	}
 }
 function GetRSFieldSet($xRS) {
 	$fieldSet = array();
@@ -986,7 +1004,7 @@ function GetRSFieldSet($xRS) {
 			$rawFields = sqlsrv_field_metadata($xRS);
 			foreach($rawFields as $field) {
 				$fieldSet[] = array(
-					'type' => GetTypeLableForMSSQLTypeCode($field['Type']),
+					'type' => GetTypeLabelForMSSQLTypeCode($field['Type']),
 					'name' => $field['Name'],
 					'table'=> null);
 			}
@@ -1000,12 +1018,19 @@ function GetNextResultRecordSet(&$xRS) {
 		case "MSSQL": return sqlsrv_next_result($xRS); break;
 	}
 }
-function GetTypeLableForMSSQLTypeCode($type) {
+function GetTypeLabelForMSSQLTypeCode($type) {
 	if($type == -7) return 'boolean';
 	if(in_array($type, array(1, -8, -10, -9, -1, 12, -152))) return 'text';
 	if(in_array($type, array(91, 92, 93, -154))) return 'datetime';
 	if(in_array($type, array(3, 6, 4, 3, 2, 7, 5, 3, -2, -6))) return 'number';
 	return 'text';
+}
+function SetLimitSyntax($SQL, $limit) {
+	if($limit <= 0) return $SQL;
+	switch(GetCurrentDBType()) {
+		case "MySQL": return "$SQL LIMIT $limit";  break;
+		case "MSSQL": $result = str_replace("SELECT ", "SELECT TOP $limit ", $SQL); return $result; break;
+	}
 }
 
 function FormatMSSQLErrors($errors) {
@@ -1111,6 +1136,8 @@ function PerformSQLExecution() {
 							$displayValue = ($tR[$fLoop] == chr(0x01) ? "True" : "False");
 						else
 							$displayValue = (ProperInt($tR[$fLoop]) == 1 ? 'True' : 'False');
+						if($columnDataTypeSet[$fLoop] != 'boolean')
+							$columnDataTypeSet[$fLoop] = 'boolean'; // correct for "unknown" datatype, ugh!
 					}
 					elseif($columnDataTypeSet[$fLoop] == 'datetime') {
 						$displayValue = FormatRSDate($tR, $fLoop);
@@ -1341,7 +1368,7 @@ function PerformTableTransferExport() {
 	$tempFileName = 'tableTransferTemp' . makeRandomHash(10) . '_.csv';
 	$zip->open($zipFileName, ZIPARCHIVE::OVERWRITE);
 	foreach($tableSet as $tableName) {
-		$xRS = ExecuteSQLTD("SELECT * FROM $tableName " . ($limit <= 0 ? '' : "LIMIT $limit"));
+		$xRS = ExecuteSQLTD(SetLimitSyntax("SELECT * FROM $tableName", $limit));
 		WriteRecordSetAsCSV($xRS, $tempFileName);
 		clearstatcache();
 		$zip->addFromString("$tableName.csv", GetFileText($tempFileName));
@@ -1783,7 +1810,7 @@ function LoadDBStructure() {
 		$suggestionSet = $tableSet;
 	if(in_array('columns', $suggestItemSet)) {	// include columns
 		foreach($tableSet as $tableName) {
-			$cRS = ExecuteSQLTD("SHOW COLUMNS FROM $tableName");
+			$cRS = GetTableColumnRS($tableName);
 			while($cR = rs_fetch_array($cRS)) {
 				$suggestionSet[] = $cR[0];
 			}
@@ -2193,10 +2220,11 @@ function ExtractFormattedValueFromRS($fieldDescriptor, $xR) {
 
 
 function HeaderCSVLineOfRecordSet($xRS) {
-	$fieldSet = array();
-	$fieldCount = rs_num_fields($xRS);
+	$fieldSet = rs_get_field_names($xRS);
+//	echo implode(',', $fieldSet); exit();
+	return implode(',', $fieldSet);
 	for($fLoop = 0; $fLoop < $fieldCount; $fLoop++) {
-		$theField = mysql_fetch_field($xRS, $fLoop);
+		$theField = rs_get_field_names($xRS, $fLoop);
 		$fieldSet[] = $theField->name;
 	}
 	return implode(',', $fieldSet);

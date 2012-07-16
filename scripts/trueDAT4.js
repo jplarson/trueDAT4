@@ -28,7 +28,11 @@ window.addEvent('domready', function() {
 		App.tabManager = new TrueDATTabManager('tabHolder');
 		App.SQLForm = $('SQLForm');
 		App.currentQueryState = [];
-		App.SQLForm.SQL.suggest = new InlineSuggest(App.SQLForm.SQL, []);
+		App.SQLForm.SQL.suggest = new InlineSuggest(App.SQLForm.SQL, [], {
+			exemptSet: ("SELECT FROM INNER OUTER LEFT RIGHT JOIN WHERE " +
+				"NULL UPDATE INSERT DELETE LIMIT WHEN CASE THEN ELSE DESC COUNT " +
+				"LTRIM RTRIM DISTINCT CONCAT IFNULL ISNULL GROUP ORDER HAVING").split(' ')
+		});
 		
 		App.databaseType = 'MySQL'; // unless overridden by loadDBStructure()
 	//	App.SQLResizer = new TextareaSizer(App.SQLForm.SQL);
@@ -86,6 +90,7 @@ window.addEvent('domready', function() {
 		if(SQLSet.length > 0) App.SQLForm.SQL.value = SQLSet[0];
 	}
 	function addRecentQuery(SQLQuery) {
+		if(SQLQuery.length > 500) return; // not a good fit for intended use of recent queries!
 		var theSelect = $('recentQuerySelect');
 		if(!theSelect.options[0]  ||  theSelect.options[0].value != SQLQuery) {
 			// Remove duplicates if we have this one already:
@@ -95,7 +100,7 @@ window.addEvent('domready', function() {
 			}
 			theSelect.options.add(new Option(SQLQuery, SQLQuery), 0);
 			theSelect.selectedIndex = 0;
-			
+			theSelect.options.length = Math.min(30, theSelect.options.length); // keep it tidy and manageable!
 			App.persistentState.recentQuerySet = getSelectValueSet(theSelect);
 		}
 	}
@@ -434,6 +439,7 @@ var TrueDATTabManager = new Class({
 				
 				// Make columns in each queryResult sortable, and show/hide Add & Edit buttons as appropriate:
 				resultDiv.getElements('.queryResult').each(function(theDiv, i) {
+					if(!App.currentQueryState.resultSet[i]) return; // this DIV might have errored out, so skip if no data
 					theDiv.sorter = new TableSorter(theDiv.getElement('table'),
 						{columnDataTypes: App.currentQueryState.resultSet[i].columnDataTypeSet });
 					prepEditAndAddButtons(theDiv, App.currentQueryState.resultSet[i].SQL, App.currentQueryState.resultSet[i].columnDataTypeSet);
@@ -1050,7 +1056,7 @@ var TrueDATTabManager = new Class({
 	function extractSQLTableName(SQL) {
 		var tableSet = App.DBStructureData.tableSet;
 		for(var i = 0; i < tableSet.length; i++) {
-			var tableMatch = SQL.match(new RegExp("FROM\\s+(" + tableSet[i] + ')', 'i'));
+			var tableMatch = SQL.match(new RegExp("FROM\\s+(" + tableSet[i] + '\\b)', 'i'));
 			if(tableMatch)
 				return tableSet[i];
 		}

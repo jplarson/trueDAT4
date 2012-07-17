@@ -31,7 +31,7 @@ window.addEvent('domready', function() {
 		App.SQLForm.SQL.suggest = new InlineSuggest(App.SQLForm.SQL, [], {
 			exemptSet: ("SELECT FROM INNER OUTER LEFT RIGHT JOIN WHERE " +
 				"NULL UPDATE INSERT DELETE LIMIT WHEN CASE THEN ELSE DESC COUNT " +
-				"LTRIM RTRIM DISTINCT CONCAT IFNULL ISNULL GROUP ORDER HAVING").split(' ')
+				"LTRIM RTRIM DISTINCT CONCAT IFNULL ISNULL GROUP ORDER HAVING ADD").split(' ')
 		});
 		
 		App.databaseType = 'MySQL'; // unless overridden by loadDBStructure()

@@ -8,9 +8,9 @@
 	
 ===============================================================================*/
 
-define('TRUEDAT4_VERSION', "4.0.2");
+define('TRUEDAT4_VERSION', "4.0.3");
 define('thisPage', $_SERVER['PHP_SELF']);
-define('TRUEDAT4_BASEURL', 'http://www.truedat.us/baseResources/4_0_2/');
+define('TRUEDAT4_BASEURL', 'http://www.truedat.us/baseResources/4_0_3/');
 	
 	$TDConfig = array();
 	$trueDATBaseURL = TRUEDAT4_BASEURL;
@@ -754,7 +754,8 @@ window.addEvent('domready', function() {
     </select>
     <textarea name="SQL" id="SQLTextArea" tabindex="3"></textarea>
     <div class="right verticalMiddle">
-      <input type="checkbox" name="showHTMLWhiteSpace">HTML whitespace &nbsp; &nbsp;
+      <input type="checkbox" name="showHTMLWhiteSpace" id="HTMLWhiteSpaceCheckbox"
+        ><label for="HTMLWhiteSpaceCheckbox">HTML whitespace</label> &nbsp; &nbsp;
       Truncate to
       <input type="text" name="truncateLength" value="0" style="width: 30px;" tabindex="7"> chars. &nbsp;
       <input type="submit" class="button" value="Execute" tabindex="4" onclick="JavaScript: executeSQL();  return false;">

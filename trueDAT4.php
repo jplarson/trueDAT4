@@ -585,6 +585,9 @@ function ProcessFirstConfig3() {
 		fclose($fh);
 		if(file_exists('trueDAT4InstallInProgress'))
 			unlink('trueDAT4InstallInProgress'); // we're done with this lock
+			
+		global $accessKey;
+		$_SESSION[$accessKey] = "granted"; // log in the user right away
 ?>
   <h3>Success</h3>
   <p>Congratulations, trueDAT is all configured and ready to go.</p>
@@ -720,7 +723,8 @@ window.addEvent('domready', function() {
       <? DrawButton("All", "selectAll();"); ?>
       <? DrawButton("Count", "getCount();"); ?> &nbsp; &nbsp;
       <? DrawButton("Top", "getTopRecords();"); ?>
-      <input type="text" name="topCount" value="10" style="width: 30px;"><span style="font-size: 10px;"></span>
+      <input type="text" name="topCount" value="10" style="width: 30px;"
+         onkeypress="JavaScript: return captureEnter(event, getTopRecords);"><span style="font-size: 10px;"></span>
       <input type="checkbox" name="isDesc" checked><span style="font-size: 8px;">DESC</span>
     </td>
   </tr>
@@ -759,12 +763,14 @@ window.addEvent('domready', function() {
     <div class="verticalMiddle">
       <? DrawButton("Beautify", "beautifyTheSQL();"); ?>
       <? DrawButton("Favorites", "this.toggleClass('pushed'); $('favoritesDiv').toggleClass('hidden')"); ?>
-      <select id="toolSelect" onchange="JavaScript: swapToSection('toolSections', this.selectedIndex);">
+      <select id="toolSelect" onchange="JavaScript: swapToSection('toolSections', this.selectedIndex);
+      	if(this.selectedIndex > 0) { this.getNext().fade('in'); }">
       	<option> - Select a tool - </option>
       	<option>Table Transfer</option>
       	<option>CSV Query Generator</option>
       	<option>Value Finder</option>
       </select>
+      <div class="button" onclick="JavaScript: swapToSection('toolSections', 0); this.fade('out'); $('toolSelect').selectedIndex = 0;" style="opacity: 0;">dismiss</div>
     </div>
   </form><!--#SQLForm-->
     <div class="clear"></div>
@@ -1104,6 +1110,7 @@ function PerformSQLExecution() {
 		
 		if($hasResultRows) {
 			DrawButton('Hide', 'loadShowHideColumnForm(this);', 'right');
+			DrawButton('Sort', 'makeColumnsSortable(this);', 'right');
 			if(rs_num_rows($tRS) > 0) DrawHiddenButton("Edit", "toggleEditMode(this);", 'edit');
 			DrawHiddenButton("Add New", "enterAddMode(this);", 'edit');
 			echo "<div class=\"clear\"></div>";

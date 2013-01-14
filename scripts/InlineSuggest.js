@@ -92,12 +92,12 @@ var InlineSuggest = new Class({
 		this.makeSuggestionFrom(0, 1);
 	},
 	makeSuggestionFrom: function(startIndex, direction) {
-		
+		console.log('makeSuggestionFrom: startIndex=' + startIndex + ', dir=' + direction);
 		var caretPosition = this.input.getCaretPosition();
 		var lastSymbolMatch = this.input.value.substr(0, caretPosition).match(/\b\w*$/);
 		if(!lastSymbolMatch) return;
 		
-		if(this.options.suppressIfInWord  &&  this.input.value.substr(caretPosition, 1).match(/\w/)) return;
+		if(this.options.suppressIfInWord  &&  !this.suggestionIsPending  &&  this.input.value.substr(caretPosition, 1).match(/\w/)) return;
 		
 		var currentSymbol = lastSymbolMatch[0].toLowerCase();
 		var symbolLength = currentSymbol.length;
@@ -109,6 +109,7 @@ var InlineSuggest = new Class({
 			if(item.substr(0, symbolLength).toLowerCase() == currentSymbol) {
 				this.input.insertAtCursor(item.substr(symbolLength), true);
 				this.suggestionIsPending = true;
+				this.suggestionLength = item.substr(symbolLength).length;
 				this.pendingSuggestionIndex = i;
 				return; // suggestion is made!
 			}

@@ -162,14 +162,21 @@ window.addEvent('domready', function() {
 			data: $('loginForm'),
 			onComplete: function() {
 				if(this.response.text == 'granted') {
-					$('loginMessage').set('text', 'Login successful!  Please wait while trueDAT loads.');
-					new Request.HTML({ url: App.thisPage + '?a=loadApp',
-						update: 'mainPage',
-						onComplete: function() {
-							hideLoad();
-							swapSections('loginPage', 'mainPage');
-						}
-					}).send();
+					theForm.password.value = ''; // not appropriate to keep this around!
+					if(App.reloggingIn) {
+						$('loginMessage').set('text', 'Login successful!');
+						hideLoad();
+						swapSections('loginPage', 'mainPage');
+					} else {
+						$('loginMessage').set('text', 'Login successful!  Please wait while trueDAT loads.');
+						new Request.HTML({ url: App.thisPage + '?a=loadApp',
+							update: 'mainPage',
+							onComplete: function() {
+								hideLoad();
+								swapSections('loginPage', 'mainPage');
+							}
+						}).send();
+					}
 				} else {
 					hideLoad();
 					$('loginMessage').set('html', this.response.text);
@@ -427,7 +434,7 @@ var TrueDATTabManager = new Class({
 			data: $('SQLForm'),
 			update: resultDiv,
 			evalScripts: true,
-			onComplete: function() {
+			onSuccess: function() {
 				hideLoad();
 				resultDiv.set('tween', {duration: 200}).tween('opacity', 0, 1);
 				addRecentQuery($('SQLTextArea').value);
@@ -440,8 +447,8 @@ var TrueDATTabManager = new Class({
 				// Make columns in each queryResult sortable, and show/hide Add & Edit buttons as appropriate:
 				resultDiv.getElements('.queryResult').each(function(theDiv, i) {
 					if(!App.currentQueryState.resultSet[i]) return; // this DIV might have errored out, so skip if no data
-					theDiv.sorter = new TableSorter(theDiv.getElement('table'),
-						{columnDataTypes: App.currentQueryState.resultSet[i].columnDataTypeSet });
+				//	theDiv.sorter = new TableSorter(theDiv.getElement('table'),
+				//		{columnDataTypes: App.currentQueryState.resultSet[i].columnDataTypeSet });
 					prepEditAndAddButtons(theDiv, App.currentQueryState.resultSet[i].SQL, App.currentQueryState.resultSet[i].columnDataTypeSet);
 					theDiv.columnTableSet = App.currentQueryState.resultSet[i].columnTableSet; // save for later
 				});
@@ -449,6 +456,13 @@ var TrueDATTabManager = new Class({
 				hideCurrentTabColumns(); // as applicable for persistent state
 			}
 		}).send();
+	}
+	
+	function makeColumnsSortable(theButton) {
+		var theDiv = theButton.getParent('.queryResult');
+		theButton.fade('out');
+		theDiv.sorter = new TableSorter(theDiv.getElement('table'),
+			{columnDataTypes: theDiv.columnTableSet });
 	}
 	
 	function exportToCSV() {
@@ -1282,4 +1296,25 @@ var TrueDATTabManager = new Class({
 	}
 /*
 //	End SECTION::Utilities
+****************************************************************************/
+
+
+/****************************************************************************
+//	SECTION::Security failure handling
+*/
+Request.HTML = Class.refactor(Request.HTML, { 
+    options: { 
+        onFailure: function() {
+        	if(this.status == 400) {
+        		hideLoad();
+        		if($('loginMessage'))
+					$('loginMessage').set('text', 'Please login again to continue.');
+				App.reloggingIn = true;
+				swapSections('mainPage', 'loginPage');
+        	}
+		}
+    }
+});
+/*
+//	End SECTION::Security failure handling
 ****************************************************************************/

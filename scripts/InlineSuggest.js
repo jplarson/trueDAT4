@@ -92,7 +92,6 @@ var InlineSuggest = new Class({
 		this.makeSuggestionFrom(0, 1);
 	},
 	makeSuggestionFrom: function(startIndex, direction) {
-		console.log('makeSuggestionFrom: startIndex=' + startIndex + ', dir=' + direction);
 		var caretPosition = this.input.getCaretPosition();
 		var lastSymbolMatch = this.input.value.substr(0, caretPosition).match(/\b\w*$/);
 		if(!lastSymbolMatch) return;

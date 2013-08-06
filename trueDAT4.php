@@ -8,9 +8,9 @@
 	
 ===============================================================================*/
 
-define('TRUEDAT4_VERSION', "4.0.3");
+define('TRUEDAT4_VERSION', "4.0.4");
 define('thisPage', $_SERVER['PHP_SELF']);
-define('TRUEDAT4_BASEURL', 'http://www.truedat.us/baseResources/4_0_3/');
+define('TRUEDAT4_BASEURL', 'http://www.truedat.us/baseResources/4_0_4/');
 	
 	$TDConfig = array();
 	$trueDATBaseURL = TRUEDAT4_BASEURL;
@@ -24,6 +24,8 @@ define('TRUEDAT4_BASEURL', 'http://www.truedat.us/baseResources/4_0_3/');
 	session_start();
 	ini_set('display_errors', '1');
 	$action = Request('a');
+	
+	BlockCSRFFailingRequest($action);
 	
 	// Special case actions:
 	if($action == '')		{ DisplayTrueDAT4();			exit(); }
@@ -67,6 +69,15 @@ define('TRUEDAT4_BASEURL', 'http://www.truedat.us/baseResources/4_0_3/');
 	}
 	exit();
 	
+
+
+function BlockCSRFFailingRequest($action) {
+	if(strlen($action) == 0) return; // no problem
+	$cookieToken = (isset($_COOKIE['CSRFToken']) ? $_COOKIE['CSRFToken'] : '');
+	if(strlen($action) == 0  ||  Request('CSRFToken') != $cookieToken) exit(); // bad call, shut it down
+	$_COOKIE['CSRFToken'] = ''; // zero out for protection against playback attacks
+}
+
 
 function LoginUser() {
 	global $TDConfig, $accessKey;

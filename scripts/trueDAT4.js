@@ -1302,7 +1302,7 @@ var TrueDATTabManager = new Class({
 /****************************************************************************
 //	SECTION::Security failure handling
 */
-Request.HTML = Class.refactor(Request.HTML, { 
+Request = Class.refactor(Request, { 
     options: { 
         onFailure: function() {
         	if(this.status == 400) {
@@ -1313,7 +1313,24 @@ Request.HTML = Class.refactor(Request.HTML, {
 				swapSections('mainPage', 'loginPage');
         	}
 		}
-    }
+    },
+    
+    send: function(options) {
+    	// Add stateless CSRF protection (http://appsandsecurity.blogspot.de/2012/01/stateless-csrf-protection.html)
+    	var CSRFToken = Math.random() * 100000;
+    	Cookie.write('CSRFToken', CSRFToken);
+    	
+    	// To append our CSRFToken to the data, we must serialize it out first just like the original send() does:
+		var data = (options  &&  options.data) ? options.data : this.options.data;
+		
+    	switch(typeOf(data)) {
+			case 'element': data = document.id(data).toQueryString(); break;
+			case 'object': case 'hash': data = Object.toQueryString(data);
+		}
+    	data = (data ? data + '&' : '') + 'CSRFToken=' + CSRFToken;
+		options = Object.append({ data: data }, options); // tuck our augmented POST data back in as an override option
+    	this.previous(options); // with our CSRFToken inserted into the request AND set as a Cookie, we are set
+	}
 });
 /*
 //	End SECTION::Security failure handling

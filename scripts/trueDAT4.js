@@ -778,6 +778,7 @@ var TrueDATTabManager = new Class({
 	function beginTableTransferUpload(theForm) {
 		if(theForm.theFile.value == '') return false;
 		showLoad('Uploading...');
+		prepFormForCSRFLegitimacy(theForm);
 		var submitButton = theForm.getElement('.button');
 		submitButton.disabled = true;
 		submitButton.value = 'Uploading...';
@@ -826,6 +827,7 @@ var TrueDATTabManager = new Class({
 	function beginCSVUpload(theForm) {
 		if(theForm.theFile.value == '') return false;
 		showLoad('Uploading...');
+		prepFormForCSRFLegitimacy(theForm);
 		var submitButton = theForm.getElement('.button');
 		submitButton.disabled = true;
 		submitButton.value = 'Uploading...';
@@ -1332,6 +1334,16 @@ Request = Class.refactor(Request, {
     	this.previous(options); // with our CSRFToken inserted into the request AND set as a Cookie, we are set
 	}
 });
+
+function prepFormForCSRFLegitimacy(theForm) {
+	theForm = $(theForm);
+	if(!theForm.CSRFToken)
+		theForm.adopt(new Element('input', { 'type': 'hidden', name: 'CSRFToken' }));
+    var CSRFToken = Math.random() * 100000;
+    theForm.CSRFToken.value = CSRFToken;
+    Cookie.write('CSRFToken', CSRFToken);
+}
+
 /*
 //	End SECTION::Security failure handling
 ****************************************************************************/

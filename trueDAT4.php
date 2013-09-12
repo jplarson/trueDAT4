@@ -10,7 +10,7 @@
 
 define('TRUEDAT4_VERSION', "4.0.4");
 define('thisPage', $_SERVER['PHP_SELF']);
-define('TRUEDAT4_BASEURL', 'http://www.truedat.us/baseResources/4_0_4/');
+define('TRUEDAT4_BASEURL', '//www.truedat.us/baseResources/4_0_4/');
 	
 	$TDConfig = array();
 	$trueDATBaseURL = TRUEDAT4_BASEURL;

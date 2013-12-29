@@ -561,7 +561,7 @@ function ProcessFirstConfig3() {
 	
 	// First ensure (crudely) that the indicated base is going to work:
 	$baseURL = $TDConfig['options']['baseURL'];
-	if(@file_get_contents($baseURL . "scripts/trueDAT4.js") === false) {
+	if(@file_get_contents(HTTPifyURL($baseURL) . "scripts/trueDAT4.js") === false) {
 ?>
     <p>Problem.</p>
     <p>The resource base URL you indicated,<br />
@@ -2105,6 +2105,13 @@ function BeginsWith($theString, $targetPrefix) {
 	}
 	return (strncmp($theString, $targetPrefix, strlen($targetPrefix)) == 0);
 }
+function EnsureBeginsWith($theString, $prefix) {
+	$result = $theString;
+	if(!BeginsWith($result, $prefix))
+		$result = $prefix . $result;
+	return $result;
+}
+
 function EndsWith($theString, $targetSuffix) {
 	return (substr($theString, strlen($theString) - strlen($targetSuffix) ) == $targetSuffix);
 }
@@ -2114,11 +2121,19 @@ function EnsureEndsWith($theString, $prefix) {
 		$result = $result .  $prefix;
 	return $result;
 }
+
 function TrimTrailing($theString, $trailingString) {
 	if(EndsWith($theString, $trailingString))
 		return substr($theString, 0, strlen($theString) - strlen($trailingString));
 	else
 		return $theString;
+}
+
+function HTTPifyURL($URL) {
+	if(strpos($URL, '.') === false) return '';
+	if(!BeginsWith($URL, 'https://'))
+		$URL = EnsureBeginsWith($URL, 'http://');
+	return $URL;
 }
 
 function makeRandomHash($lenth = 5, $charRange = false) {

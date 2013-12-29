@@ -771,6 +771,7 @@ var TrueDATTabManager = new Class({
 */
 	function beginTableTransferExport(theForm) {
 		if(theForm.elements['tableSet[]'].value == '') return false;
+		prepFormForCSRFLegitimacy(theForm);
 		return true;
 	}
 	

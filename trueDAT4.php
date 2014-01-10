@@ -8,9 +8,9 @@
 	
 ===============================================================================*/
 
-define('TRUEDAT4_VERSION', "4.0.4");
+define('TRUEDAT4_VERSION', "4.0.5");
 define('thisPage', $_SERVER['PHP_SELF']);
-define('TRUEDAT4_BASEURL', '//www.truedat.us/baseResources/4_0_4/');
+define('TRUEDAT4_BASEURL', '//www.truedat.us/baseResources/4_0_5/');
 	
 	$TDConfig = array();
 	$trueDATBaseURL = TRUEDAT4_BASEURL;
@@ -220,11 +220,11 @@ function DisplayLoginForm() {
 	<table class="verticalMiddle">
 	  <tr>
 	    <td width="200">Username</td>
-	    <td><input type="text" name="username"style="width: 200px;"></td>
+	    <td><input type="text" name="username" style="width: 200px;"></td>
 	  </tr>
 	  <tr>
 	    <td>Password</td>
-	    <td><input type="password" name="password"style="width: 200px;"></td>
+	    <td><input type="password" name="password" style="width: 200px;"></td>
 	  </tr>
 	  <tr>
 	    <td></td>
@@ -703,7 +703,7 @@ function DisplayApp() {
 <script type="text/javascript">
 window.addEvent('domready', function() {
 	initializeTrueDAT4();
-	loadSQLCheatSheet(<?=JSValue(@file_get_contents($trueDATBaseURL . "scripts/trueDATCheatSheet" . GetCurrentDBType() . ".txt"))?>);
+	loadSQLCheatSheet(<?=JSValue(file_get_contents(HTTPifyURL($trueDATBaseURL) . "scripts/trueDATCheatSheet" . GetCurrentDBType() . ".txt"))?>);
 });
 </script>
 <form method="post" action="<?=thisPage?>" id="SQLExportForm">
@@ -895,15 +895,15 @@ function OpenTDDBConnection($dieOnFail = true) {
 			}
 			break;
 		case "MySQL":
-			$TDDB_connection = mysql_connect($connData['host'], $connData['username'], $connData['password']);
+			$TDDB_connection = mysqli_connect($connData['host'], $connData['username'], $connData['password'], $connData['schema']);
 			if(!$TDDB_connection) {
 				if($dieOnFail)
 					die('Connection to MySQL at ' . $connData['host'] . ' failed!');
 				else
 					return false;
 			}
-			mysql_select_db($connData['schema'], $TDDB_connection);
-			mysql_query("SET sql_mode='NO_BACKSLASH_ESCAPES'", $TDDB_connection); // to avoid \' shenanigans
+			
+			mysqli_query($TDDB_connection, "SET sql_mode='NO_BACKSLASH_ESCAPES'"); // to avoid \' shenanigans
 			break;
 		default: // unsupported DB type!
 			return false;
@@ -915,7 +915,7 @@ function CloseTDDBConnection() {
 	global $TDDB_connectionIsOpen, $TDDB_connection;
 	if(!$TDDB_connectionIsOpen) return;
 	switch(GetCurrentDBType()) {
-		case "MySQL": mysql_close($TDDB_connection); break;
+		case "MySQL": mysqli_close($TDDB_connection); break;
 		case "MSSQL": break;  // later.
 	}
 	$TDDB_connectionIsOpen = false;	
@@ -927,25 +927,25 @@ function ExecuteSQLTD($SQL, $dieOnFail = true) {
 	global $TDDB_connection;
 	switch(GetCurrentDBType()) {
 		case "MySQL":
-			$xRS = mysql_query($SQL, $TDDB_connection);
-			if(!$xRS  &&  $dieOnFail) { die("<hr />Invalid SQL:<br />$SQL<br /><br />" . mysql_error()); } 
+			$xRS = mysqli_query($TDDB_connection, $SQL);
+			if(!$xRS  &&  $dieOnFail) { die("<hr />Invalid SQL:<br />$SQL<br /><br />" . mysqli_error($TDDB_connection)); } 
 			break;
 		case "MSSQL":
 			$xRS = sqlsrv_query($TDDB_connection, $SQL, array(), array("Scrollable" => 'static'));
-			if(!$xRS  &&  $dieOnFail) { die("<hr />Invalid SQL:<br />$SQL<br /><br />" . mysql_error()); }
+			if(!$xRS  &&  $dieOnFail) { die("<hr />Invalid SQL:<br />$SQL<br /><br />" . mysqli_error($TDDB_connection)); }
 			break;
 	}
 	return $xRS;
 }
 function rs_num_rows($xRS) {
 	switch(GetCurrentDBType()) {
-		case "MySQL": return mysql_num_rows($xRS);  break;
+		case "MySQL": return mysqli_num_rows($xRS);  break;
 		case "MSSQL": return sqlsrv_num_rows($xRS); break;
 	}
 }
 function rs_num_fields($xRS) {
 	switch(GetCurrentDBType()) {
-		case "MySQL": return mysql_num_fields($xRS);  break;
+		case "MySQL": return mysqli_num_fields($xRS);  break;
 		case "MSSQL": return sqlsrv_num_fields($xRS); break;
 	}
 }
@@ -953,9 +953,9 @@ function rs_get_field_names($xRS) {
 	$resultSet = array(); 
 	switch(GetCurrentDBType()) {
 		case "MySQL":
-			$fieldCount = mysql_num_fields($xRS);
+			$fieldCount = mysqli_num_fields($xRS);
 			for($fLoop = 0; $fLoop < $fieldCount; $fLoop++) {
-				$theField = mysql_fetch_field($xRS, $fLoop);
+				$theField = mysqli_fetch_field($xRS);
 				$resultSet[] = $theField->name;
 			}
 			break;
@@ -972,7 +972,7 @@ function rs_get_field_names($xRS) {
 }
 function rs_fetch_array($xRS) {
 	switch(GetCurrentDBType()) {
-		case "MySQL": return mysql_fetch_array($xRS);  break;
+		case "MySQL": return mysqli_fetch_array($xRS);  break;
 		case "MSSQL": return sqlsrv_fetch_array($xRS, SQLSRV_FETCH_BOTH); break;
 	}
 }
@@ -980,9 +980,9 @@ function rs_fetch_fields($xRS) {
 	$result = array();
 	switch(GetCurrentDBType()) {
 		case "MySQL":
-			$fieldCount = mysql_num_fields($xRS);
+			$fieldCount = mysqli_num_fields($xRS);
 			for($fLoop = 0; $fLoop < $fieldCount; $fLoop++) {
-				$result[] = mysql_fetch_field($xRS, $fLoop);
+				$result[] = mysqli_fetch_field($xRS);
 			}
 			break;
 		case "MSSQL":
@@ -1009,11 +1009,11 @@ function GetRSFieldSet($xRS) {
 	$fieldSet = array();
 	switch(GetCurrentDBType()) {
 		case "MySQL":
-			$fieldCount = mysql_num_fields($xRS);
+			$fieldCount = mysqli_num_fields($xRS);
 			for($fLoop = 0; $fLoop < $fieldCount; $fLoop++) {
-				$field = mysql_fetch_field($xRS, $fLoop);
+				$field = mysqli_fetch_field($xRS);
 				$fieldSet[] = array(
-					'type' => ($field->type == 'int'  &&  $field->numeric == 0 ? 'boolean' : $field->type),
+					'type' => ConvertMySQLiTypeCode($field->type),
 					'name' => $field->name,
 					'table'=> $field->table);
 			}
@@ -1029,6 +1029,15 @@ function GetRSFieldSet($xRS) {
 			break;
 	}
 	return $fieldSet;
+}
+function ConvertMySQLiTypeCode($typeCode) { // return $typeCode;
+	switch($typeCode) {
+		case 16: return 'boolean';
+		case 1: case 2: case 3: case 6: case 8: case 9:		return 'int';
+		case 4: case 5: case 246:							return 'number';
+		case 10: case 12: case 7: case 11: case 13:			return 'datetime';
+		case 252: case 253: case 254:						return 'string';
+	}
 }
 function GetNextResultRecordSet(&$xRS) {
 	switch(GetCurrentDBType()) {
@@ -1102,7 +1111,7 @@ function PerformSQLExecution() {
 		tic();
 		$tRS = ExecuteSQLTD($SQLSet[$sLoop]);
 		$timeElapsed = toc();
-		$hasResultRows = ($tRS != 1  &&  rs_num_rows($tRS) !== false);
+		$hasResultRows = (rs_num_rows($tRS) !== false);
 		
 	  do {
 			
@@ -1144,6 +1153,8 @@ function PerformSQLExecution() {
 			}
 			echo "</tr>";
 			
+			$showHTMLWhiteSpace = RequestCheckbox("showHTMLWhiteSpace")  ||  BeginsWith(strtoupper($SQLSet[$sLoop]), 'SHOW CREATE TABLE ');
+			
 			// Render the data rows:
 			while($tR = rs_fetch_array($tRS)) {
 				echo "<tr>\n";
@@ -1164,7 +1175,7 @@ function PerformSQLExecution() {
 					else
 						$displayValue = htmlspecialchars(TruncatedString($tR[$fLoop], RequestInt("truncateLength", 0)));
 					
-					if(RequestCheckbox("showHTMLWhiteSpace"))
+					if($showHTMLWhiteSpace)
 						$displayValue = HTMLWhiteSpace($displayValue);
 					
 					echo "<td>$displayValue</td>";
@@ -1173,7 +1184,7 @@ function PerformSQLExecution() {
 			}
 		}
 		else { // display number of rows affected
-			$ar = mysql_affected_rows();
+			$ar = mysqli_affected_rows();
 			echo "<tr><td>" . (ProperInt($ar, 'x') != 'x' ? $ar . " record" . PluralS($ar) . " affected" : "Execution Successful") . "</td></tr>";
 		}
 ?>
@@ -1204,10 +1215,10 @@ function PerformSQLExecution() {
 function DeleteTableRow() {
 	$deleteSQL = "DELETE FROM " . Request("tableName") . "
 		  WHERE " . GetTablePrimaryKey(Request("tableName")) . "=" . RequestInt("theID");
-	
+	global $TDDB_connection;
 	ExecuteSQLTD($deleteSQL, false);
-	if(mysql_errno() != 0) // uh oh, we'll display what went wrong
-		echo "Error: " . mysql_error() . ".<hr />$deleteSQL";
+	if(mysqli_errno($TDDB_connection) != 0) // uh oh, we'll display what went wrong
+		echo "Error: " . mysqli_error($TDDB_connection) . ".<hr />$deleteSQL";
 	else
 		echo 'ok';
 }
@@ -1257,8 +1268,9 @@ function UpdateTableField() {
 		  WHERE " . GetTablePrimaryKey(Request("tableName")) . "=" . RequestInt("theID", 0);
 	ExecuteSQLTD($updateSQL, false);
 	
-	if(mysql_errno() != 0) // uh oh, we'll display what went wrong
-		echo "Error: " . mysql_error() . "<hr />...no UPDATE occurred.<br />" . $updateSQL;
+	global $TDDB_connection;
+	if(mysqli_error($TDDB_connection) != 0) // uh oh, we'll display what went wrong
+		echo "Error: " . mysqli_error($TDDB_connection) . "<hr />...no UPDATE occurred.<br />" . $updateSQL;
 	else
 		echo $theEchoValue;
 }
@@ -1285,7 +1297,8 @@ function AddTableRow() {
 	$insertSQL = "INSERT INTO $tableName($columnNameList) VALUES(" . implode(', ', $valueSet) . ")";
 	ExecuteSQLTD($insertSQL, false);
 	
-	if(mysql_errno() != 0) {
+	global $TDDB_connection;
+	if(mysqli_errno($TDDB_connection) != 0) {
 		// uh oh, we'll display what went wrong and then quit
 ?>
   <td colspan="<?=(count($columnNameSet) + 1)?>" class="clickable" onclick="JavaScript: $(this).getParent().dispose();">
@@ -1295,7 +1308,7 @@ function AddTableRow() {
 <?
 		return;
 	} else { // render the new row:
-		echo "<td>" . mysql_insert_id() . "</td>";
+		echo "<td>" . mysqli_insert_id($TDDB_connection) . "</td>";
 		for($c = 0; $c < sizeof($columnNameSet); $c++) {
 			echo "<td>" . htmlspecialchars($displayValueSet[$c]) . "</td>";
 		}
@@ -1567,6 +1580,7 @@ function PerformCSVQuery() {
 	
 	$rowCount = 0;
 	$failCount = 0;
+	global $TDDB_connection;
 	while(($CSVSet = fgetcsv($fh, 0)) !== FALSE  &&  ($limit <= 0  ||  $rowCount < $limit)) {
 		// Generate this SQL as a plug-and-chug substitution from the CSV row data:
 		$SQL = $CSVSQL;
@@ -1584,7 +1598,7 @@ function PerformCSVQuery() {
 		
 		if($verbose  ||  !$execute  ||  $failure) {
 			if($failure) {
-				echo "<span class=\"alert\">$SQL<br />Error: <code>" . mysql_error() . "</code></span><hr />";
+				echo "<span class=\"alert\">$SQL<br />Error: <code>" . mysqli_error($TDDB_connection) . "</code></span><hr />";
 			} else {
 				echo "$SQL<hr />";
 			}
@@ -1677,7 +1691,7 @@ function PerformValueFind() {
 		// Iterate through columns to find relevant ones:
 		$valueClauseSet = array();
 		$cRS = ExecuteSQLTD("SHOW COLUMNS FROM `$tableName` WHERE {$whichTypeClauseSet[$which]}");
-		while($cR = mysql_fetch_assoc($cRS)) {
+		while($cR = mysqli_fetch_assoc($cRS)) {
 			$valueClauseSet[] = "`{$cR['Field']}`" . (($which == 'string' &&  $like) ? " LIKE " : " = ") . $value;
 		}
 		if(count($valueClauseSet) > 0) { // this table is worth searching in!
@@ -1764,7 +1778,7 @@ function BeginIFrame() {
 function GetTablePrimaryKey($tableName) {
 	switch(GetCurrentDBType()) {
 		case 'MySQL':
-			$cR = mysql_fetch_assoc(ExecuteSQLTD("SHOW KEYS FROM `$tableName` WHERE Key_name = 'PRIMARY'"));
+			$cR = mysqli_fetch_assoc(ExecuteSQLTD("SHOW KEYS FROM `$tableName` WHERE Key_name = 'PRIMARY'"));
 			return $cR['Column_name'];
 			break;
 		case 'MSSQL':
@@ -1861,7 +1875,7 @@ function GetStoredProcedureDefinition() {
 	$statementDelimiter = $TDConfig['options']['statementDelimiter'];
 	switch(GetCurrentDBType()) {
 		case 'MySQL':
-			$xR = mysql_fetch_array(ExecuteSQLTD("SHOW CREATE PROCEDURE $SPName"));
+			$xR = mysqli_fetch_array(ExecuteSQLTD("SHOW CREATE PROCEDURE $SPName"));
 			$spText = "DROP PROCEDURE IF EXISTS $statementDelimiter$delim{$xR[2]}";
 			break;
 		case 'MSSQL':
@@ -2122,6 +2136,12 @@ function EnsureEndsWith($theString, $prefix) {
 	return $result;
 }
 
+function TrimLeading($theString, $leadingString) {
+	if(BeginsWith($theString, $leadingString))
+		return substr($theString, strlen($leadingString));
+	else
+		return $theString;
+}
 function TrimTrailing($theString, $trailingString) {
 	if(EndsWith($theString, $trailingString))
 		return substr($theString, 0, strlen($theString) - strlen($trailingString));
@@ -2130,7 +2150,7 @@ function TrimTrailing($theString, $trailingString) {
 }
 
 function HTTPifyURL($URL) {
-	if(strpos($URL, '.') === false) return '';
+	$URL = TrimLeading($URL, '//');
 	if(!BeginsWith($URL, 'https://'))
 		$URL = EnsureBeginsWith($URL, 'http://');
 	return $URL;

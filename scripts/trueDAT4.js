@@ -462,7 +462,7 @@ var TrueDATTabManager = new Class({
 		var theDiv = theButton.getParent('.queryResult');
 		theButton.fade('out');
 		theDiv.sorter = new TableSorter(theDiv.getElement('table'),
-			{columnDataTypes: theDiv.columnTableSet });
+			{columnDataTypes: theDiv.columnDataTypeSet });
 	}
 	
 	function exportToCSV() {

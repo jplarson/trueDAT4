@@ -939,13 +939,13 @@ function ExecuteSQLTD($SQL, $dieOnFail = true) {
 }
 function rs_num_rows($xRS) {
 	switch(GetCurrentDBType()) {
-		case "MySQL": return mysqli_num_rows($xRS);  break;
+		case "MySQL": return is_bool($xRS) ? 0 : mysqli_num_rows($xRS);  break;
 		case "MSSQL": return sqlsrv_num_rows($xRS); break;
 	}
 }
 function rs_num_fields($xRS) {
 	switch(GetCurrentDBType()) {
-		case "MySQL": return mysqli_num_fields($xRS);  break;
+		case "MySQL": return is_bool($xRS) ? 0 : mysqli_num_fields($xRS);  break;
 		case "MSSQL": return sqlsrv_num_fields($xRS); break;
 	}
 }
@@ -1111,7 +1111,7 @@ function PerformSQLExecution() {
 		tic();
 		$tRS = ExecuteSQLTD($SQLSet[$sLoop]);
 		$timeElapsed = toc();
-		$hasResultRows = (rs_num_rows($tRS) !== false);
+		$hasResultRows = (rs_num_rows($tRS) > 0);
 		
 	  do {
 			
@@ -1184,7 +1184,8 @@ function PerformSQLExecution() {
 			}
 		}
 		else { // display number of rows affected
-			$ar = mysqli_affected_rows();
+			global $TDDB_connection;
+			$ar = mysqli_affected_rows($TDDB_connection);
 			echo "<tr><td>" . (ProperInt($ar, 'x') != 'x' ? $ar . " record" . PluralS($ar) . " affected" : "Execution Successful") . "</td></tr>";
 		}
 ?>

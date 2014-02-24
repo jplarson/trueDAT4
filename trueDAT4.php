@@ -955,7 +955,7 @@ function rs_get_field_names($xRS) {
 		case "MySQL":
 			$fieldCount = mysqli_num_fields($xRS);
 			for($fLoop = 0; $fLoop < $fieldCount; $fLoop++) {
-				$theField = mysqli_fetch_field($xRS);
+				$theField = mysqli_fetch_field_direct($xRS, $fLoop);
 				$resultSet[] = $theField->name;
 			}
 			break;
@@ -982,7 +982,7 @@ function rs_fetch_fields($xRS) {
 		case "MySQL":
 			$fieldCount = mysqli_num_fields($xRS);
 			for($fLoop = 0; $fLoop < $fieldCount; $fLoop++) {
-				$result[] = mysqli_fetch_field($xRS);
+				$result[] = mysqli_fetch_field_direct($xRS, $fLoop);
 			}
 			break;
 		case "MSSQL":
@@ -1011,7 +1011,7 @@ function GetRSFieldSet($xRS) {
 		case "MySQL":
 			$fieldCount = mysqli_num_fields($xRS);
 			for($fLoop = 0; $fLoop < $fieldCount; $fLoop++) {
-				$field = mysqli_fetch_field($xRS);
+				$field = mysqli_fetch_field_direct($xRS, $fLoop);
 				$fieldSet[] = array(
 					'type' => ConvertMySQLiTypeCode($field->type),
 					'name' => $field->name,
@@ -1111,7 +1111,7 @@ function PerformSQLExecution() {
 		tic();
 		$tRS = ExecuteSQLTD($SQLSet[$sLoop]);
 		$timeElapsed = toc();
-		$hasResultRows = (rs_num_rows($tRS) > 0);
+		$hasResultRows = !is_bool($tRS);
 		
 	  do {
 			

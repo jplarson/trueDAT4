@@ -467,6 +467,7 @@ var TrueDATTabManager = new Class({
 	
 	function exportToCSV() {
 		$('SQLExportForm').SQL.value = App.SQLForm.SQL.value;
+		prepFormForCSRFLegitimacy($('SQLExportForm'));
 		$('SQLExportForm').submit();
 	}
 
@@ -811,6 +812,8 @@ var TrueDATTabManager = new Class({
 	function beginTableTransferImport(theForm) {
 		if(theForm.elements['tableSet[]'].value == '') return false;
 		$('tableTransferImportIFrame').setStyle('display', 'block');
+		prepFormForCSRFLegitimacy(theForm);
+		return true;
 	}
 	function completeTableTransferImport() {
 		$('tableTransferImportIFrame').setStyle('display', 'none');

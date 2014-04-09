@@ -1092,7 +1092,7 @@ function GetCurrentDBType() { global $TDConfig; return $TDConfig['connections'][
 /*==== End SECTION :: Database Interactions ================================*/
 
 
-function ExportToCSV() { WriteAndDeliverRSAsCSV(ExecuteSQLTD($_REQUEST["SQL"]), "trueDATExport.csv"); }
+function ExportToCSV() { $xRS = ExecuteSQLTD($_REQUEST["SQL"]); WriteAndDeliverRSAsCSV($xRS, "trueDATExport.csv"); }
 
 function PerformSQLExecution() {
 	
@@ -1245,7 +1245,7 @@ function UpdateTableField() {
 				$theSQLValue  = ProperInt($theNewValue, "null");
 				$theEchoValue = ProperInt($theNewValue, "");
 				break;
-			case "float": case "currency": case "real":
+			case "float": case "currency": case "real": case "number": case "double":
 				$theSQLValue  = ProperNumber($theNewValue, "null");
 				$theEchoValue = ProperNumber($theNewValue, "");
 				break;

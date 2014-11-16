@@ -27,6 +27,7 @@ window.addEvent('domready', function() {
 	function initializeTrueDAT4() {
 		App.tabManager = new TrueDATTabManager('tabHolder');
 		App.SQLForm = $('SQLForm');
+		App.SF = $('shortcutsForm');
 		App.currentQueryState = [];
 		App.SQLForm.SQL.suggest = new InlineSuggest(App.SQLForm.SQL, [], {
 			exemptSet: ("SELECT FROM INNER OUTER LEFT RIGHT JOIN WHERE " +
@@ -44,7 +45,7 @@ window.addEvent('domready', function() {
 		
 		loadDBStructure(true);
 		
-		App.SQLForm.table.addEvent('change', function() { App.persistentState.currentTable = this.value; });
+		App.SF.table.addEvent('change', function() { App.persistentState.currentTable = this.value; });
 		
 		
 		recallRecentQueries();
@@ -481,33 +482,33 @@ var TrueDATTabManager = new Class({
 //	SECTION::Quick Query Action
 */
 	
-	function loadSchema() { if(App.SQLForm.table.selectedIndex == 0) return;
+	function loadSchema() { if(App.SF.table.selectedIndex == 0) return;
 		var schemaSQL;
 		switch(App.databaseType) {
 			case 'MSSQL': schemaSQL = 'sp_help';					break;
 			case 'MySQL': schemaSQL = 'SHOW COLUMNS FROM';			break;
 		}
-		quickLoadSQL(schemaSQL + ' ' + App.SQLForm.table.value);
+		quickLoadSQL(schemaSQL + ' ' + App.SF.table.value);
 	}
-	function loadTriggers() { if(App.SQLForm.table.selectedIndex == 0) return;
-		var tableName = App.SQLForm.table.value;
+	function loadTriggers() { if(App.SF.table.selectedIndex == 0) return;
+		var tableName = App.SF.table.value;
 		switch(App.databaseType) {
 			case 'MSSQL': quickLoadSQL('sp_helptrigger ' + tableName);					break;
 			case 'MySQL': quickLoadSQL('SHOW TRIGGERS LIKE \'%' + tableName + '%\'');	break;
 		}
 	}
-	function selectAll() { if(App.SQLForm.table.selectedIndex == 0) return;
+	function selectAll() { if(App.SF.table.selectedIndex == 0) return;
 		quickLoadSQL(
 			'SELECT * \n'  +
-			'  FROM ' + App.SQLForm.table.value);
+			'  FROM ' + App.SF.table.value);
 	}
-	function getCount() { if(App.SQLForm.table.selectedIndex == 0) return;
+	function getCount() { if(App.SF.table.selectedIndex == 0) return;
 		quickLoadSQL(
 			'SELECT COUNT(*) AS recordCount \n' +
-			'  FROM ' + App.SQLForm.table.value);
+			'  FROM ' + App.SF.table.value);
 	}
-	function getTopRecords() { if(App.SQLForm.table.selectedIndex == 0) return;
-		var theCount = App.SQLForm.topCount.value;
+	function getTopRecords() { if(App.SF.table.selectedIndex == 0) return;
+		var theCount = App.SF.topCount.value;
 		var topClause = '', limitClause = '';
 		switch(App.databaseType) {
 			case 'MSSQL': topClause = 'TOP ' + theCount + ' ';		break;
@@ -516,20 +517,20 @@ var TrueDATTabManager = new Class({
 		
 		quickLoadSQL(
 			'SELECT ' + topClause + '*\n' +
-			'  FROM ' + App.SQLForm.table.value + '\n' +
-			' ORDER BY ' + App.DBStructureData.tablePrimaryKeySet[App.SQLForm.table.value] + (App.SQLForm.isDesc.checked ? ' DESC' : '') + limitClause);
+			'  FROM ' + App.SF.table.value + '\n' +
+			' ORDER BY ' + App.DBStructureData.tablePrimaryKeySet[App.SF.table.value] + (App.SF.isDesc.checked ? ' DESC' : '') + limitClause);
 	}
-	function getIDEqualsRecord() { if(App.SQLForm.table.selectedIndex == 0) return;
+	function getIDEqualsRecord() { if(App.SF.table.selectedIndex == 0) return;
 		quickLoadSQL(
 			'SELECT *\n' +
-			'  FROM ' + App.SQLForm.table.value + '\n' +
-			' WHERE ' + App.DBStructureData.tablePrimaryKeySet[App.SQLForm.table.value] + '=' + App.SQLForm.IDEquals.value);
+			'  FROM ' + App.SF.table.value + '\n' +
+			' WHERE ' + App.DBStructureData.tablePrimaryKeySet[App.SF.table.value] + '=' + App.SF.IDEquals.value);
 	}
-	function getStoredProcedureDefinition() { if(App.SQLForm.storedProcedure.selectedIndex == 0) return;
+	function getStoredProcedureDefinition() { if(App.SF.storedProcedure.selectedIndex == 0) return;
 		showLoad();
 		new Request.HTML({ url: App.thisPage + '?a=getStoredProcedureDefinition',
 			method: 'post',
-			data: { SPName: App.SQLForm.storedProcedure.value },
+			data: { SPName: App.SF.storedProcedure.value },
 			onComplete: function() {
 				hideLoad();
 				// update our SQL with the stored procedure definition that comes back:
@@ -565,10 +566,10 @@ var TrueDATTabManager = new Class({
 			}).send();
 		}
 		function integrateDBStructure() {
-			setSelectOptions(App.SQLForm.table, ['', App.DBStructureData.tableSet].flatten(), [' - Select a table - ', App.DBStructureData.tableLabelSet].flatten());
-			setSelectOptions(App.SQLForm.storedProcedure, [' - Select a stored procedure - ', App.DBStructureData.SPSet].flatten());
+			setSelectOptions(App.SF.table, ['', App.DBStructureData.tableSet].flatten(), [' - Select a table - ', App.DBStructureData.tableLabelSet].flatten());
+			setSelectOptions(App.SF.storedProcedure, [' - Select a stored procedure - ', App.DBStructureData.SPSet].flatten());
 			
-			App.SQLForm.table.value = App.persistentState.currentTable;
+			App.SF.table.value = App.persistentState.currentTable;
 			
 			setSelectOptions('tableTransferExportSelect', App.DBStructureData.tableSet);
 			$('tableTransferExportSelect').size = App.DBStructureData.tableSet.length;
@@ -794,7 +795,7 @@ var TrueDATTabManager = new Class({
 		if(success) {
 			new Request.HTML({ url: App.thisPage + '?a=loadTableTransferState',
 				method: 'post',
-				update: 'uploadedTableTransferState',
+				update: 'uploadedTableTransferState'
 			}).send();
 		} else
 			App.roar.alert('Upload Fail', 'Could not save your uploaded file.');
@@ -867,6 +868,7 @@ var TrueDATTabManager = new Class({
 	function beginCSVQuery(theForm) {
 		if(theForm.CSVSQL.value == '') return false;
 		$('CSVQueryIFrame').setStyle('display', 'block');
+		prepFormForCSRFLegitimacy(theForm);
 	}
 	function completeCSVQuery() {
 		$('CSVQueryIFrame').setStyle('display', 'none');
@@ -890,6 +892,7 @@ var TrueDATTabManager = new Class({
 			default:		return false;
 		}
 		$('valueFinderIFrame').setStyle('display', 'block');
+		prepFormForCSRFLegitimacy(theForm);
 	}
 	function completeValueFinder() {
 		$('valueFinderIFrame').setStyle('display', 'none');
@@ -911,7 +914,7 @@ var TrueDATTabManager = new Class({
 			updateSet.push(field + '= REPLACE(' + field + ', ' + SQLValue(findValue) + ', ' + SQLValue(replaceValue) + ')');
 		});
 		var SQL = "UPDATE " + tableName + "\n" +
-			"   SET " + updateSet.join(",\n      ") + "\n" +
+			"   SET " + updateSet.join(",\n       ") + "\n" +
 			" WHERE " + whereClause;
 		quickLoadSQL(SQL);
 	}

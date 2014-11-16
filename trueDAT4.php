@@ -418,7 +418,7 @@ function LoadAutoDetectDBSettings() {
 	$result = GetAutoDetectDBSettings(Request('which'));
 	if($result) { // mask particulars for security
 		$result['password'] = 'XXXXXXXXXX';
-		$result['username'] = substr($result['username'], 0, 2) . str_repeat('X', strlen($result['username'])-2);
+		$result['username'] = substr($result['username'], 0, 2) . str_repeat('X', max(1, strlen($result['username'])-2));
 	}
 	echo json_encode($result);
 }
@@ -710,16 +710,8 @@ window.addEvent('domready', function() {
   <input type="hidden" name="a" value="exportToCSV">
   <input type="hidden" name="SQL" value="">
 </form>
-<form action="JavaScript: void(0);" id="SQLForm">
-<?	if(false) { ?>
-<div class="rolledScroll" style="width:800px;">
-  <div class="header">
-  	<div class="controls">
-  	</div>
-    <span class="title">Operations Menu</span>
-  </div>
-<?	} ?>
 <? BeginScrollPane('', '800px') ?>
+<form id="shortcutsForm">
 <table class="verticalMiddle" width="100%">
   <tr>
     <td><img src="<?=$trueDATBaseURL?>images/textTables.gif"></td>
@@ -751,6 +743,7 @@ window.addEvent('domready', function() {
     </td>
   </tr>
 </table>
+</form>
 <?	EndScrollPane(); ?>
 
 <ul id="tabHolder" class="tabSet"><li class="tab">Tab 1</li></ul>
@@ -758,6 +751,7 @@ window.addEvent('domready', function() {
 <div class="scroll" id="SQLPanel">
   <div class="header"><span class="title"></span></div>
   <div class="bodyBottomRightEdge"><div class="body">
+   <form action="JavaScript: void(0);" id="SQLForm">
     <select id="cheatSheetSelect" tabindex="1" onchange="JavaScript: loadSelectQuery(this);"></select>
     <select id="recentQuerySelect" tabindex="2"
             onchange="JavaScript: loadSelectQuery(this);"
@@ -784,7 +778,7 @@ window.addEvent('domready', function() {
       </select>
       <div class="button" onclick="JavaScript: swapToSection('toolSections', 0); this.fade('out'); $('toolSelect').selectedIndex = 0;" style="opacity: 0;">dismiss</div>
     </div>
-  </form><!--#SQLForm-->
+   </form><!--#SQLForm-->
     <div class="clear"></div>
     <div class="nextElement"></div>
     <div id="favoritesDiv" class="hidden" >
@@ -1173,7 +1167,7 @@ function PerformSQLExecution() {
 						$displayValue = FormatRSDate($tR, $fLoop);
 					}
 					else
-						$displayValue = htmlspecialchars(TruncatedString($tR[$fLoop], RequestInt("truncateLength", 0)));
+						$displayValue = htmlspecialchars(TruncatedString($tR[$fLoop], RequestInt("truncateLength", 0)), ENT_IGNORE);
 					
 					if($showHTMLWhiteSpace)
 						$displayValue = HTMLWhiteSpace($displayValue);
@@ -1373,9 +1367,8 @@ function DisplayTableTransferState() {
 			$importTableSet[] = TrimTrailing(zip_entry_name($zipFile), ".csv");
 		}
 ?>
-<form method="post" action="<?=thisPage?>" target="tableTransferImportIFrame" 
-	  onsubmit="JavaScript: return beginTableTransferImport(this);">
-  <input type="hidden" name="a" value="tableTransferImport">
+<form method="POST" action="<?=thisPage?>" target="tableTransferImportIFrame" onsubmit="JavaScript: return beginTableTransferImport(this);">
+  <input type="hidden" name="a" value="tableTransferImport" />
   <select name="tableSet[]" multiple size="<?=count($importTableSet)?>" style="width: 250px;">
 <?	foreach($importTableSet as $tableName) { ?>
     <option value="<?=$tableName?>"><?=$tableName?></option>
@@ -1385,8 +1378,8 @@ function DisplayTableTransferState() {
     <input type="submit" value="Truncate then Import Tables" />
     <input type="submit" value="Clear File" onclick="JavaScript: deleteTableTransferFile(); return false;" />
   </div>
+  <br />
 </form>
-<br />
 <?	}
 }
 
@@ -1399,7 +1392,7 @@ function PerformTableTransferExport() {
 	$zip = new ZipArchive;
 	$zipFileName = '.trueDATTableTransfer' . makeRandomHash(10) . '_exportZip.zip';
 	$tempFileName = 'tableTransferTemp' . makeRandomHash(10) . '_.csv';
-	$zip->open($zipFileName, ZIPARCHIVE::OVERWRITE);
+	$zip->open($zipFileName, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE);
 	foreach($tableSet as $tableName) {
 		$xRS = ExecuteSQLTD(SetLimitSyntax("SELECT * FROM $tableName", $limit));
 		WriteRecordSetAsCSV($xRS, $tempFileName);
@@ -1713,7 +1706,7 @@ function PerformValueFind() {
 						$relevantFieldSet[] = $matchSet[1];
 					}
 				}
-				$relevantClause = implode("\n    OR ", $relevantClauseSet);
+				$relevantClause = implode("\n       OR ", $relevantClauseSet);
 				$theSQL = JSValue("SELECT * FROM $tableName\n WHERE $relevantClause");
 ?>
   <tr>
@@ -1726,7 +1719,7 @@ function PerformValueFind() {
       <div class="NextElement" style="display: none;">
         Replace with <input type="text" name="replace" style="width: 180px;" />
          <div class="button" onclick="JavaScript: window.top.replaceValueFinderResults(<?=JSValue($tableName)?>,
-         	'<?=implode("', '", $relevantFieldSet)?>',
+         	'<?=implode(", ", $relevantFieldSet)?>',
          	<?=JSValue($relevantClause)?>,
          	<?=JSValue(SQLSafe(Request('string')))?>,
          	this.getPrevious().value);">Go</div>
